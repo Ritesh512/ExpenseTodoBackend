@@ -5,7 +5,7 @@ const userRoutes = require('./routes/userRoutes');
 const todoRoutes = require('./routes/todoRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-
+const path = require("path");
 const auth = require('./middleware/auth');
 
 const jwt = require("jsonwebtoken");
@@ -13,6 +13,7 @@ const bcrypt = require("bcrypt");
 
 const app = express();
 app.use(express.json());
+app.use(express.static(path.resolve(__dirname, "dist")));
 app.use(cors());
 
 //user router
@@ -24,8 +25,10 @@ app.use('/api/users/todo',auth, todoRoutes)
 //Expense routes
 app.use('/api/expenses',auth, expenseRoutes);
 
+app.get("*", (req, res) =>
+  res.sendFile(path.resolve(__dirname, "dist", "index.html"))
+);
 
-// app.use("/api/dashboard",dashboardRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, function (req, res) {
