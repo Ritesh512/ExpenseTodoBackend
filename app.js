@@ -4,7 +4,6 @@ require("./models/Config");
 const userRoutes = require('./routes/userRoutes');
 const todoRoutes = require('./routes/todoRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
 const path = require("path");
 const auth = require('./middleware/auth');
 
