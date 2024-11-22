@@ -20,10 +20,14 @@ app.use(cors());
 app.use('/api/users', userRoutes); 
 
 //todo list
-app.use('/api/users/todo',auth, todoRoutes)
+app.use('/api/users/todo',auth, todoRoutes);
 
 //Expense routes
 app.use('/api/expenses',auth, expenseRoutes);
+
+app.get("/api/health", (req, res) => {
+  res.json({ message: "Server is running" });
+});
 
 app.get("*", (req, res) =>
   res.sendFile(path.resolve(__dirname, "dist", "index.html"))
