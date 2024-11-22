@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema({
   taskName: {
@@ -40,4 +40,4 @@ const todoListSchema = new mongoose.Schema({
 // Compound index to make listName unique per user
 todoListSchema.index({ userId: 1, listName: 1 }, { unique: true });
 
-module.exports = mongoose.model('TodoList', todoListSchema);
+export default mongoose.model('TodoList', todoListSchema);

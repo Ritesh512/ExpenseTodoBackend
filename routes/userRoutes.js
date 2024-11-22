@@ -1,8 +1,8 @@
-// routes/userRoutes.js
-const express = require('express');
+import express from 'express';
+import * as userController from '../controller/userController.js'; // Import all functions from userController
+import auth from '../middleware/auth.js'; // Import auth middleware
+
 const router = express.Router();
-const userController = require('../controller/userController');
-const auth = require('../middleware/auth');
 
 // User Sign Up
 router.post('/signup', userController.signup);
@@ -17,4 +17,5 @@ router.get('/profile/:userId', userController.getUserDashboard);
 
 router.post('/changePassword',auth,  userController.changePassword);
 
-module.exports = router;
+export default router;
+

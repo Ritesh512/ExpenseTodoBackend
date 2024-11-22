@@ -1,6 +1,5 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   addExpense,
   getAllExpenses,
   getExpenseById,
@@ -8,13 +7,16 @@ const {
   deleteExpense,
   updateExpense,
   getExpensesForTwoMonths,
-  getExpensesByMonth ,
+  getExpensesByMonth,
   getCategoryBreakdown,
   getSpendingTrends,
   getTopExpenses,
   getLowestExpenses,
   getExpenseReport,
-} = require('../controller/expenseController');
+} from '../controller/expenseController.js';
+
+const router = express.Router();
+
 
 // Add Expense
 router.post('/', addExpense);
@@ -45,4 +47,5 @@ router.get("/analysis/low-expenses", getLowestExpenses);
 
 router.get('/dashboard/report', getExpenseReport);
 
-module.exports = router;
+export default router;
+

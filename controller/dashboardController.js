@@ -1,8 +1,9 @@
-const Expense = require('../models/Expense'); // Assuming your Expense model is here
-const TodoList = require('../models/TodoList');
-const mongoose = require('mongoose'); // Assuming your Todo model is here
+import Expense from '../models/Expense.js';  // Assuming your Expense model is here
+import TodoList from '../models/TodoList.js';
+import mongoose from 'mongoose';  // Assuming your Todo model is here
 
-exports.getDashboardData = async (req, res) => {
+
+export const getDashboardData = async (req, res) => {
   try {
     // Fetch total spending
     const totalSpending = await Expense.aggregate([

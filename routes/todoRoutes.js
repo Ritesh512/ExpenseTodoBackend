@@ -1,7 +1,8 @@
 // routes/todoRoutes.js
-const express = require('express');
+import express from 'express';
+import * as todoController from '../controller/todoController.js'; // Import the controller
+
 const router = express.Router();
-const todoController = require('../controller/todoController') // Import the controller
 
 
 router.post('/lists/addTask/:listId', todoController.addTaskToList);
@@ -28,4 +29,5 @@ router.delete('/lists/:listId/task/:taskId', todoController.deleteTaskById);
 
 router.get('/lists/summary', todoController.getTodoDetails);
 
-module.exports = router;
+export default router;
+

@@ -1,18 +1,21 @@
 // controllers/userController.js
-const User = require('../models/User'); // Import the User model
-const TodoList = require('../models/TodoList');
-const Expense = require('../models/Expense');
+import User from '../models/User.js';  // Import the User model
+import TodoList from '../models/TodoList.js';
+import Expense from '../models/Expense.js';
 
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); // For generating password reset tokens
-require('dotenv').config();
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';  // For generating password reset tokens
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Secret key for JWT
-const JWT_SECRET = process.env.JWT_SECRET; // Replace with a secure secret key
+const JWT_SECRET = process.env.JWT_SECRET;  // Replace with a secure secret key
+
 
 // User Sign Up
-exports.signup = async (req, res) => {
+export const signup = async (req, res) => {
   const { username, email, password, role } = req.body;
 
   try {
@@ -38,7 +41,7 @@ exports.signup = async (req, res) => {
 };
 
 // User Login
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -75,7 +78,7 @@ exports.login = async (req, res) => {
 };
 
 // Forgot Password
-exports.forgotPassword = async (req, res) => {
+export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -106,7 +109,7 @@ exports.forgotPassword = async (req, res) => {
 
 
 
-exports.getUserDashboard = async (req, res) => {
+export const getUserDashboard = async (req, res) => {
   try {
     const userId = req.params.userId;
 
@@ -160,7 +163,7 @@ exports.getUserDashboard = async (req, res) => {
 };
 
 
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   const { password, newPassword } = req.body;
   const userId = req.userId; // Assuming userId is coming from a token
 

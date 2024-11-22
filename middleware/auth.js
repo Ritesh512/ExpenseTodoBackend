@@ -1,6 +1,9 @@
 // middleware/authMiddleware.js
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET; 
 
@@ -23,4 +26,4 @@ const auth = (req, res, next) => {
   });
 };
 
-module.exports = auth;
+export default auth;

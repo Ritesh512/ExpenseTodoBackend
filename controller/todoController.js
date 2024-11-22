@@ -1,9 +1,9 @@
-// controllers/todoController.js
-const TodoList = require('../models/TodoList');
-const mongoose = require('mongoose');
+import TodoList from '../models/TodoList.js';
+import mongoose from 'mongoose';
 
 
-exports.addTaskToList = async (req, res) => {
+
+export const addTaskToList = async (req, res) => {
   const { listId } = req.params; // Extract the list ID from the request parameters
   const { taskName, duration, reminder } = req.body; // Extract task details from the request body
   const userId = req.userId; // Get the user ID from the middleware
@@ -43,7 +43,7 @@ exports.addTaskToList = async (req, res) => {
 };
 
 
-exports.addNewList = async (req, res) => {
+export const addNewList = async (req, res) => {
   const { listName } = req.body; // Extract the list name from the request body
   const userId = req.userId; // Get the user ID from the middleware
 
@@ -91,7 +91,7 @@ exports.addNewList = async (req, res) => {
 };
 
 // Get all todo lists for the authenticated user
-exports.getAllLists = async (req, res) => {
+export const getAllLists = async (req, res) => {
   const userId = req.userId; // Get the user ID from the middleware
 
   try {
@@ -119,7 +119,7 @@ exports.getAllLists = async (req, res) => {
 };
 
 // Update the name of a specific todo list for the authenticated user
-exports.updateListName = async (req, res) => {
+export const updateListName = async (req, res) => {
   const { listName } = req.params; // Get the current list name from the URL parameters
   const { newListName } = req.body; // Get the new list name from the request body
   const userId = req.userId; // Get the user ID from the middleware
@@ -152,7 +152,7 @@ exports.updateListName = async (req, res) => {
 
 
 // Delete a specific todo list and its associated tasks for the authenticated user
-exports.deleteList = async (req, res) => {
+export const deleteList = async (req, res) => {
   const { listId } = req.params; // Get the list name from the URL parameters
   const userId = req.userId; // Get the user ID from the middleware
   
@@ -179,7 +179,7 @@ exports.deleteList = async (req, res) => {
 
 
 
-exports.getAllTasksFromList = async (req, res) => {
+export const getAllTasksFromList = async (req, res) => {
   const { listId } = req.params; // Retrieve listId from query parameters
   const userId = req.userId; // Get the user ID from the middleware
 
@@ -207,7 +207,7 @@ exports.getAllTasksFromList = async (req, res) => {
   }
 };
 
-exports.getTaskById = async (req, res) => {
+export const getTaskById = async (req, res) => {
   const { listId, taskId } = req.params;
   console.log(listId, taskId);
 
@@ -230,7 +230,7 @@ exports.getTaskById = async (req, res) => {
 };
 
 // Update a task by ID in a specific todo list
-exports.updateTaskById = async (req, res) => {
+export const updateTaskById = async (req, res) => {
   const { listId, taskId } = req.params;
   const { taskName, completed } = req.body;
 
@@ -263,7 +263,7 @@ exports.updateTaskById = async (req, res) => {
 };
 
 // Delete a task by ID in a specific todo list
-exports.deleteTaskById = async (req, res) => {
+export const deleteTaskById = async (req, res) => {
   const { listId, taskId } = req.params;
 
   try {
@@ -290,7 +290,7 @@ exports.deleteTaskById = async (req, res) => {
 };
 
 
-exports.getTodoDetails = async (req, res) => {
+export const getTodoDetails = async (req, res) => {
   try {
     const userId = req.userId;
     const todos = await TodoList.find({ userId }).select('tasks');

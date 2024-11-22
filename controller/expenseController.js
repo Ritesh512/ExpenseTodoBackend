@@ -1,8 +1,7 @@
-const Expense = require('../models/Expense');
-const mongoose = require('mongoose');
-
+import Expense from '../models/Expense.js';
+import mongoose from 'mongoose';
 // Add Expense
-exports.addExpense = async (req, res) => {
+export const addExpense = async (req, res) => {
   try {
     req.body.userId = req.userId;
     const expense = new Expense(req.body);
@@ -14,7 +13,7 @@ exports.addExpense = async (req, res) => {
 };
 
 // Get All Expenses
-exports.getAllExpenses = async (req, res) => {
+export const getAllExpenses = async (req, res) => {
   try {
     const userId = req.userId; 
     const expenses = await Expense.find({userId: userId});
@@ -25,7 +24,7 @@ exports.getAllExpenses = async (req, res) => {
 };
 
 // Get Expense By ID
-exports.getExpenseById = async (req, res) => {
+export const getExpenseById = async (req, res) => {
   const { expenseId } = req.params;
   const userId = req.userId; // Get the user ID from the middleware
   try {
@@ -40,7 +39,7 @@ exports.getExpenseById = async (req, res) => {
 };
 
 // Get Expenses By Date Range
-exports.getExpensesByDate = async (req, res) => {
+export const getExpensesByDate = async (req, res) => {
   const { startDate, endDate } = req.query;
   const userId = req.userId;
   try {
@@ -57,7 +56,7 @@ exports.getExpensesByDate = async (req, res) => {
 };
 
 // Delete Expense
-exports.deleteExpense = async (req, res) => {
+export const deleteExpense = async (req, res) => {
   const { expenseId } = req.params;
   const userId = req.userId; // Get the user ID from the middleware
   try {
@@ -72,7 +71,7 @@ exports.deleteExpense = async (req, res) => {
 };
 
 // Update Expense
-exports.updateExpense = async (req, res) => {
+export const updateExpense = async (req, res) => {
   const { expenseId } = req.params;
   const userId = req.userId; // Get the user ID from the middleware
   try {
@@ -90,7 +89,7 @@ exports.updateExpense = async (req, res) => {
 };
 
 
-exports.getExpensesForTwoMonths = async (req, res) => {
+export const getExpensesForTwoMonths = async (req, res) => {
   const { month1, year1, month2, year2 } = req.query;
   const userId = req.userId;
 
@@ -147,7 +146,7 @@ exports.getExpensesForTwoMonths = async (req, res) => {
 
 
 // data based on the mon and year
-exports.getExpensesByMonth = async (req, res) => {
+export const getExpensesByMonth = async (req, res) => {
   const { month, year } = req.query;
   const userId = req.userId;
 
@@ -172,7 +171,7 @@ exports.getExpensesByMonth = async (req, res) => {
 
 
 // Get Expense Category Breakdown
-exports.getCategoryBreakdown = async (req, res) => {
+export const getCategoryBreakdown = async (req, res) => {
   const { startDate, endDate } = req.query;
   const userId = req.userId;
 
@@ -220,7 +219,7 @@ exports.getCategoryBreakdown = async (req, res) => {
 
 
 //Spending Trends
-exports.getSpendingTrends = async (req, res) => {
+export const getSpendingTrends = async (req, res) => {
   const { startDate, endDate, interval = "monthly" } = req.query;
   const userId = req.userId;
 
@@ -261,7 +260,7 @@ exports.getSpendingTrends = async (req, res) => {
 
 
 // Top Expenses Details
-exports.getTopExpenses = async (req, res) => {
+export const getTopExpenses = async (req, res) => {
   const { startDate, endDate, limit = 5 } = req.query;
   const userId = req.userId;
 
@@ -289,7 +288,7 @@ exports.getTopExpenses = async (req, res) => {
 
 
 // Lowest Expenses Details
-exports.getLowestExpenses = async (req, res) => {
+export const getLowestExpenses = async (req, res) => {
   const { startDate, endDate, limit = 5 } = req.query;
   const userId = req.userId;
 
@@ -314,7 +313,7 @@ exports.getLowestExpenses = async (req, res) => {
 };
 
 
-exports.getExpenseReport = async (req, res) => {
+export const getExpenseReport = async (req, res) => {
   try {
     const userId = req.userId;
 
