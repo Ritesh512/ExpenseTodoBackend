@@ -6,7 +6,7 @@ const Expense = require('../models/Expense');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto'); // For generating password reset tokens
-
+require('dotenv').config();
 
 // Secret key for JWT
 const JWT_SECRET = process.env.JWT_SECRET; // Replace with a secure secret key
