@@ -55,7 +55,7 @@ Ensure you have the following installed:
 ### Steps to Run Locally  
 1. Clone the repository:  
    ```bash  
-   git clone https://github.com/Ritesh512/ExpenseTodoApp
+   git clone https://github.com/Ritesh512/ExpenseTodoBackend
    cd ExpenseTodoApp
 
    
