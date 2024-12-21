@@ -328,7 +328,7 @@ export const getExpenseReport = async (req, res) => {
 
     // Convert the category totals into an array of objects
     const barChartData = Object.entries(categoryTotals)
-      .map(([category, amount]) => ({ category, amount }))
+      .map(([category, amount]) => ({ category, amount: parseFloat(amount.toFixed(2)) }))
       .sort((a, b) => b.amount - a.amount)  // Sort by amount in descending order
       .slice(0, 5);  // Limit to top 5 categories
 
