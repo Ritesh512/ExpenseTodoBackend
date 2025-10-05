@@ -13,8 +13,13 @@ const expenseSchema = new mongoose.Schema({
   },
   expenseType: {
     type: String,
-    enum: ['Custom', 'Retail', 'Electronic', 'Food', 'Travel', 'Utilities', 'Gold', 'Medicine', 'SIP'], // Add more as needed
     required: true,
+    trim: true,
+    set: (val) => {
+      if (!val) return val;
+      // Capitalize first letter, lowercase rest
+      return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+    }
   },
   date: {
     type: Date,

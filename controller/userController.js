@@ -111,36 +111,32 @@ export const forgotPassword = async (req, res) => {
 
 export const getUserDashboard = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = req.userId || req.params.userId;
 
-    // Fetch user data
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Fetch to-do statistics
-    const todos = await TodoList.find({ userId });
-    const todoPendingCount = todos.reduce(
-      (count, list) => count + list.tasks.filter(task => !task.completed).length,
-      0
-    );
-    const todoDoneCount = todos.reduce(
-      (count, list) => count + list.tasks.filter(task => task.completed).length,
-      0
-    );
-
-    // Fetch expense statistics
     const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const currentMonthExpenses = await Expense.find({
-      userId,
-      date: { $gte: currentMonthStart }
-    });
     const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
     const lastMonthEnd = currentMonthStart;
-    const lastMonthExpenses = await Expense.find({
-      userId,
-      date: { $gte: lastMonthStart, $lt: lastMonthEnd }
+
+    // Run queries in parallel
+    const [user, todos, currentMonthExpenses, lastMonthExpenses] = await Promise.all([
+      User.findById(userId),
+      TodoList.find({ userId }),
+      Expense.find({ userId, date: { $gte: currentMonthStart } }),
+      Expense.find({ userId, date: { $gte: lastMonthStart, $lt: lastMonthEnd } })
+    ]);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Calculate todo stats
+    let todoPendingCount = 0, todoDoneCount = 0;
+    todos.forEach(list => {
+      list.tasks.forEach(task => {
+        if (task.completed) todoDoneCount++;
+        else todoPendingCount++;
+      });
     });
 
+    // Expense stats
     const currentMonthExpense = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const lastMonthExpense = lastMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const topExpense = currentMonthExpenses.reduce((top, exp) =>
@@ -154,13 +150,18 @@ export const getUserDashboard = async (req, res) => {
       todo_done_count: todoDoneCount,
       current_month_expense: currentMonthExpense,
       last_month_expense: lastMonthExpense,
-      top_expense: topExpense || null,
+      top_expense: topExpense ? {
+        expenseName: topExpense.expenseName,
+        amount: topExpense.amount,
+        date: topExpense.date
+      } : null,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 export const changePassword = async (req, res) => {

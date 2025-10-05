@@ -4,6 +4,14 @@ import mongoose from 'mongoose';
 export const addExpense = async (req, res) => {
   try {
     req.body.userId = req.userId;
+
+    // sanitize expenseType in controller too (extra safety)
+    if (req.body.expenseType) {
+      req.body.expenseType =
+        req.body.expenseType.charAt(0).toUpperCase() +
+        req.body.expenseType.slice(1).toLowerCase();
+    }
+
     const expense = new Expense(req.body);
     const savedExpense = await expense.save();
     res.status(201).json(savedExpense);
@@ -73,12 +81,21 @@ export const deleteExpense = async (req, res) => {
 // Update Expense
 export const updateExpense = async (req, res) => {
   const { expenseId } = req.params;
-  const userId = req.userId; // Get the user ID from the middleware
+  const userId = req.userId;
+
   try {
-    const expense = await Expense.findByIdAndUpdate({_id:expenseId,userId:userId}, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    if (req.body.expenseType) {
+      req.body.expenseType =
+        req.body.expenseType.charAt(0).toUpperCase() +
+        req.body.expenseType.slice(1).toLowerCase();
+    }
+
+    const expense = await Expense.findOneAndUpdate(
+      { _id: expenseId, userId },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
     }
