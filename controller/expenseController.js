@@ -23,8 +23,8 @@ export const addExpense = async (req, res) => {
 // Get All Expenses
 export const getAllExpenses = async (req, res) => {
   try {
-    const userId = req.userId; 
-    const expenses = await Expense.find({userId: userId});
+    const userId = req.userId;
+    const expenses = await Expense.find({ userId: userId });
     res.status(200).json(expenses);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -36,7 +36,7 @@ export const getExpenseById = async (req, res) => {
   const { expenseId } = req.params;
   const userId = req.userId; // Get the user ID from the middleware
   try {
-    const expense = await Expense.findOne({_id:expenseId,userId:userId});
+    const expense = await Expense.findOne({ _id: expenseId, userId: userId });
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
     }
@@ -51,7 +51,8 @@ export const getExpensesByDate = async (req, res) => {
   const { startDate, endDate } = req.query;
   const userId = req.userId;
   try {
-    const expenses = await Expense.find({ userId:userId,
+    const expenses = await Expense.find({
+      userId: userId,
       date: {
         $gte: new Date(startDate),
         $lte: new Date(endDate),
@@ -68,7 +69,7 @@ export const deleteExpense = async (req, res) => {
   const { expenseId } = req.params;
   const userId = req.userId; // Get the user ID from the middleware
   try {
-    const expense = await Expense.findByIdAndDelete({_id:expenseId,userId:userId});
+    const expense = await Expense.findByIdAndDelete({ _id: expenseId, userId: userId });
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
     }
@@ -124,11 +125,13 @@ export const getExpensesForTwoMonths = async (req, res) => {
     const endOfMonth2 = new Date(year2, month2, 0, 23, 59, 59); // End of month2
 
     // Fetch expenses for both months
-    const expensesMonth1 = await Expense.find({ userId:userId,
+    const expensesMonth1 = await Expense.find({
+      userId: userId,
       date: { $gte: startOfMonth1, $lte: endOfMonth1 },
     });
 
-    const expensesMonth2 = await Expense.find({ userId:userId,
+    const expensesMonth2 = await Expense.find({
+      userId: userId,
       date: { $gte: startOfMonth2, $lte: endOfMonth2 },
     });
 
@@ -241,7 +244,7 @@ export const getSpendingTrends = async (req, res) => {
   const userId = req.userId;
 
   try {
-    const filter = { userId:new mongoose.Types.ObjectId(userId) };
+    const filter = { userId: new mongoose.Types.ObjectId(userId) };
     if (startDate) filter.date = { $gte: new Date(startDate) };
     if (endDate) filter.date = { ...filter.date, $lte: new Date(endDate) };
 
@@ -249,8 +252,8 @@ export const getSpendingTrends = async (req, res) => {
       interval === "daily"
         ? { year: { $year: "$date" }, month: { $month: "$date" }, day: { $dayOfMonth: "$date" } }
         : interval === "weekly"
-        ? { year: { $year: "$date" }, week: { $week: "$date" } }
-        : { year: { $year: "$date" }, month: { $month: "$date" } };
+          ? { year: { $year: "$date" }, week: { $week: "$date" } }
+          : { year: { $year: "$date" }, month: { $month: "$date" } };
 
     const trends = await Expense.aggregate([
       { $match: filter },
@@ -333,37 +336,136 @@ export const getLowestExpenses = async (req, res) => {
 export const getExpenseReport = async (req, res) => {
   try {
     const userId = req.userId;
+    const { category } = req.query; // optional filter
 
-    // Fetch all expenses for the user
-    const expenses = await Expense.find({ userId });
+    // Current year range
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+    const endOfYear = new Date(new Date().getFullYear() + 1, 0, 1);
 
-    // Bar chart data: Top expenses by category
-    const categoryTotals = expenses.reduce((acc, expense) => {
-      acc[expense.expenseType] = (acc[expense.expenseType] || 0) + expense.amount;
-      return acc;
-    }, {});
+    // Match condition
+    const matchStage = {
+      userId: new mongoose.Types.ObjectId(userId),
+      date: { $gte: startOfYear, $lt: endOfYear },
+    };
 
-    // Convert the category totals into an array of objects
-    const barChartData = Object.entries(categoryTotals)
-      .map(([category, amount]) => ({ category, amount: parseFloat(amount.toFixed(2)) }))
-      .sort((a, b) => b.amount - a.amount)  // Sort by amount in descending order
-      .slice(0, 5);  // Limit to top 5 categories
+    if (category) {
+      matchStage.expenseType = category;
+    }
 
-    // Pie chart data: Category percentages
-    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const pieChartData = Object.entries(categoryTotals)
-      .map(([category, amount]) => ({
-        category,
-        percentage: ((amount / totalExpense) * 100).toFixed(2),
-      }))
-      .sort((a, b) => b.percentage - a.percentage)  // Sort by percentage in descending order
-      .slice(0, 5);  // Limit to top 5 categories
+    const expenses = await Expense.aggregate([
+      { $match: matchStage },
 
-    // Return the data
-    res.json({ barChartData, pieChartData });
+      {
+        $group: {
+          _id: "$expenseType",
+          totalAmount: { $sum: "$amount" }
+        }
+      },
+
+      {
+        $sort: { totalAmount: -1 }
+      },
+
+      {
+        $limit: 5
+      }
+    ]);
+
+    const totalExpense = expenses.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0
+    );
+
+    // Bar chart
+    const barChartData = expenses.map(item => ({
+      category: item._id,
+      amount: Number(item.totalAmount.toFixed(2))
+    }));
+
+    // Pie chart
+    const pieChartData = expenses.map(item => ({
+      category: item._id,
+      percentage: ((item.totalAmount / totalExpense) * 100).toFixed(2)
+    }));
+
+    res.status(200).json({
+      year: new Date().getFullYear(),
+      barChartData,
+      pieChartData
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Get Summary Stats
+export const getSummaryStats = async (req, res) => {
+  const { startDate, endDate } = req.query;
+  const userId = req.userId;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ message: "Start date and end date are required." });
+  }
+
+  try {
+    const matchFilter = {
+      userId: new mongoose.Types.ObjectId(userId),
+      date: { $gte: new Date(startDate), $lte: new Date(endDate) }
+    };
+
+    // Get total transactions and total amount
+    const overallStats = await Expense.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+          totalTransactions: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get spending days
+    const spendingDaysResult = await Expense.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } }
+        }
+      },
+      { $count: "spendingDays" }
+    ]);
+
+    // Get top spending day
+    const topSpendingDayResult = await Expense.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+          total: { $sum: "$amount" }
+        }
+      },
+      { $sort: { total: -1 } },
+      { $limit: 1 }
+    ]);
+
+    const totalTransactions = overallStats.length > 0 ? overallStats[0].totalTransactions : 0;
+    const totalAmount = overallStats.length > 0 ? overallStats[0].totalAmount : 0;
+    const averageTransactionAmount = totalTransactions > 0 ? (totalAmount / totalTransactions).toFixed(2) : 0;
+    const spendingDays = spendingDaysResult.length > 0 ? spendingDaysResult[0].spendingDays : 0;
+    const topSpendingDay = topSpendingDayResult.length > 0 ? topSpendingDayResult[0]._id : null;
+
+    res.status(200).json({
+      totalTransactions,
+      averageTransactionAmount: parseFloat(averageTransactionAmount),
+      spendingDays,
+      topSpendingDay
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 

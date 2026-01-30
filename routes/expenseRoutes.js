@@ -13,6 +13,7 @@ import {
   getTopExpenses,
   getLowestExpenses,
   getExpenseReport,
+  getSummaryStats,
 } from '../controller/expenseController.js';
 
 const router = express.Router();
@@ -44,6 +45,7 @@ router.get("/analysis/category-breakdown", getCategoryBreakdown);
 router.get("/analysis/spending-trends", getSpendingTrends);
 router.get("/analysis/top-expenses", getTopExpenses);
 router.get("/analysis/low-expenses", getLowestExpenses);
+router.get("/analysis/summary-stats", getSummaryStats);
 
 router.get('/dashboard/report', getExpenseReport);
 
