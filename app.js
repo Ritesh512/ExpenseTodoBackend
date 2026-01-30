@@ -7,6 +7,7 @@ import './models/Config.js';
 import userRoutes from './routes/userRoutes.js';
 import todoRoutes from './routes/todoRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
+import stickyNoteRoutes from "./routes/stickyNoteRoutes.js";
 import auth from './middleware/auth.js';
 
 const app = express();
@@ -23,6 +24,8 @@ app.use('/api/users/todo', auth, todoRoutes);
 
 // Expense routes
 app.use('/api/expenses', auth, expenseRoutes);
+
+app.use("/api/sticky-notes", stickyNoteRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running' });
