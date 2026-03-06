@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import todoRoutes from './routes/todoRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import stickyNoteRoutes from "./routes/stickyNoteRoutes.js";
+import aiAnalysisRoutes from './routes/aiAnalysisRoutes.js';
 import auth from './middleware/auth.js';
 
 const app = express();
@@ -17,13 +18,16 @@ app.use(express.static(path.resolve('dist')));
 app.use(cors());
 
 // User routes
-app.use('/api/users', userRoutes); 
+app.use('/api/users', userRoutes);
 
 // Todo list routes
 app.use('/api/users/todo', auth, todoRoutes);
 
 // Expense routes
 app.use('/api/expenses', auth, expenseRoutes);
+
+// AI Analysis routes
+app.use('/api/ai', auth, aiAnalysisRoutes);
 
 app.use("/api/sticky-notes", stickyNoteRoutes);
 
