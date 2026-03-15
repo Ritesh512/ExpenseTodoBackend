@@ -12,7 +12,7 @@ dotenv.config();
 
 // Secret key for JWT
 const JWT_SECRET = process.env.JWT_SECRET;  // Replace with a secure secret key
-
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN; // Token expiration time
 
 // User Sign Up
 export const signup = async (req, res) => {
@@ -67,7 +67,7 @@ export const login = async (req, res) => {
 
     // Generate a JWT token
     const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: '1h' // Token expiration time
+      expiresIn: JWT_EXPIRES_IN // Token expiration time
     });
 
     res.status(200).json({ message: 'Login successful', token, loginUser });
@@ -194,7 +194,7 @@ export const changePassword = async (req, res) => {
     await user.save();
 
     // Regenerate JWT token
-    const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
     return res.status(200).json({ message: 'Password updated successfully', token });
     
