@@ -20,11 +20,19 @@ export const signup = async (req, res) => {
 
   try {
     // Check if the user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
+    });
+
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      if (existingUser.email === email) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+      if (existingUser.username === username) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
     }
-    
+
     const userRole = role || 'user';
 
     // Create a new user
@@ -58,12 +66,12 @@ export const login = async (req, res) => {
     }
 
     const loginUser = {
-        userId: user._id,
-        role: user.role,
-        username: user.username,
-        email: user.email
+      userId: user._id,
+      role: user.role,
+      username: user.username,
+      email: user.email
     }
-    
+
 
     // Generate a JWT token
     const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, {
@@ -174,7 +182,7 @@ export const changePassword = async (req, res) => {
 
   try {
     const user = await User.findOne({ _id: userId });
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -197,7 +205,7 @@ export const changePassword = async (req, res) => {
     const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
     return res.status(200).json({ message: 'Password updated successfully', token });
-    
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
