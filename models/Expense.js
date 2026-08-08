@@ -36,7 +36,9 @@ const expenseSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
-},{ timestamps: true });
+}, { timestamps: true });
+
+expenseSchema.index({ userId: 1, expenseType: 1, date: 1 });
 
 const Expense = mongoose.model('Expense', expenseSchema);
 

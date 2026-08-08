@@ -46,6 +46,23 @@ export const getExpenseById = async (req, res) => {
   }
 };
 
+const parseDate = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const endOfDay = (date) => {
+  const copy = new Date(date);
+  copy.setHours(23, 59, 59, 999);
+  return copy;
+};
+
+const normalizeCategory = (category) => {
+  const trimmed = category.trim();
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+};
+
 // Get Expenses By Date Range
 export const getExpensesByDate = async (req, res) => {
   const { startDate, endDate } = req.query;
@@ -61,6 +78,118 @@ export const getExpensesByDate = async (req, res) => {
     res.status(200).json(expenses);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+// Get all unique categories for the current user
+export const getExpenseCategories = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const categories = await Expense.distinct('expenseType', {
+      userId: new mongoose.Types.ObjectId(userId),
+      expenseType: { $exists: true, $nin: [null, ''] },
+    });
+
+    const uniqueCategories = categories
+      .filter((category) => typeof category === 'string' && category.trim() !== '')
+      .map((category) => category.trim())
+      .sort((a, b) => a.localeCompare(b));
+
+    res.status(200).json({ categories: uniqueCategories });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Search expenses by category and inclusive date range
+export const searchExpensesByCategoryAndDateRange = async (req, res) => {
+  const { category, startDate, endDate } = req.query;
+  const userId = req.userId;
+
+  if (!category || !category.trim()) {
+    return res.status(400).json({ message: 'Category is required.' });
+  }
+  if (!startDate) {
+    return res.status(400).json({ message: 'Start date is required.' });
+  }
+  if (!endDate) {
+    return res.status(400).json({ message: 'End date is required.' });
+  }
+
+  const parsedStartDate = parseDate(startDate);
+  const parsedEndDate = parseDate(endDate);
+
+  if (!parsedStartDate || !parsedEndDate) {
+    return res.status(400).json({ message: 'Invalid date format.' });
+  }
+
+  const normalizedCategory = normalizeCategory(category);
+  const start = new Date(parsedStartDate);
+  start.setHours(0, 0, 0, 0);
+  const end = endOfDay(parsedEndDate);
+
+  if (start > end) {
+    return res.status(400).json({ message: 'startDate must be before or equal to endDate.' });
+  }
+
+  try {
+    const filter = {
+      userId: new mongoose.Types.ObjectId(userId),
+      expenseType: normalizedCategory,
+      date: { $gte: start, $lte: end },
+    };
+
+    const aggregation = await Expense.aggregate([
+      { $match: filter },
+      { $sort: { date: -1 } },
+      {
+        $facet: {
+          expenses: [
+            {
+              $project: {
+                _id: 1,
+                expenseName: 1,
+                expenseType: 1,
+                issuedTo: 1,
+                amount: 1,
+                date: 1,
+              },
+            },
+          ],
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalAmount: { $sum: '$amount' },
+                expenseCount: { $sum: 1 },
+                averageExpense: { $avg: '$amount' },
+                highestExpense: { $max: '$amount' },
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const expenses = aggregation[0]?.expenses || [];
+    const summaryData = aggregation[0]?.summary[0] || null;
+    const summary = summaryData
+      ? {
+        totalAmount: summaryData.totalAmount,
+        expenseCount: summaryData.expenseCount,
+        averageExpense: parseFloat(summaryData.averageExpense.toFixed(2)),
+        highestExpense: summaryData.highestExpense,
+      }
+      : {
+        totalAmount: 0,
+        expenseCount: 0,
+        averageExpense: 0,
+        highestExpense: 0,
+      };
+
+    res.status(200).json({ expenses, summary });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -238,27 +367,51 @@ export const getCategoryBreakdown = async (req, res) => {
 
 
 
-//Spending Trends
+// Spending Trends
 export const getSpendingTrends = async (req, res) => {
-  const { startDate, endDate, interval = "monthly" } = req.query;
+  const { startDate, endDate, interval = 'monthly', category } = req.query;
   const userId = req.userId;
 
   try {
     const filter = { userId: new mongoose.Types.ObjectId(userId) };
-    if (startDate) filter.date = { $gte: new Date(startDate) };
-    if (endDate) filter.date = { ...filter.date, $lte: new Date(endDate) };
+
+    if (category) {
+      if (!category.trim()) {
+        return res.status(400).json({ message: 'Invalid category.' });
+      }
+      filter.expenseType = normalizeCategory(category);
+    }
+
+    if (startDate) {
+      const parsedStartDate = parseDate(startDate);
+      if (!parsedStartDate) {
+        return res.status(400).json({ message: 'Invalid date format.' });
+      }
+      const start = new Date(parsedStartDate);
+      start.setHours(0, 0, 0, 0);
+      filter.date = { ...filter.date, $gte: start };
+    }
+
+    if (endDate) {
+      const parsedEndDate = parseDate(endDate);
+      if (!parsedEndDate) {
+        return res.status(400).json({ message: 'Invalid date format.' });
+      }
+      const end = endOfDay(parsedEndDate);
+      filter.date = { ...filter.date, $lte: end };
+    }
 
     const groupFormat =
-      interval === "daily"
-        ? { year: { $year: "$date" }, month: { $month: "$date" }, day: { $dayOfMonth: "$date" } }
-        : interval === "weekly"
-          ? { year: { $year: "$date" }, week: { $week: "$date" } }
-          : { year: { $year: "$date" }, month: { $month: "$date" } };
+      interval === 'daily'
+        ? { year: { $year: '$date' }, month: { $month: '$date' }, day: { $dayOfMonth: '$date' } }
+        : interval === 'weekly'
+          ? { year: { $year: '$date' }, week: { $week: '$date' } }
+          : { year: { $year: '$date' }, month: { $month: '$date' } };
 
     const trends = await Expense.aggregate([
       { $match: filter },
-      { $group: { _id: groupFormat, totalAmount: { $sum: "$amount" } } },
-      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
+      { $group: { _id: groupFormat, totalAmount: { $sum: '$amount' } } },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } },
     ]);
 
     res.status(200).json({
