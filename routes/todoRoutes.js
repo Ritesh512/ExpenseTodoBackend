@@ -11,6 +11,7 @@ router.get('/lists/getList/:listId', todoController.getAllTasksFromList);
 
 // Route to get all todo lists for the authenticated user
 router.get('/lists', todoController.getAllLists);
+router.post('/lists/reminders/claim', todoController.claimDueReminders);
 
 // Route to delete a todo list for the authenticated user
 router.delete('/lists/:listId', todoController.deleteList);
@@ -30,4 +31,3 @@ router.delete('/lists/:listId/task/:taskId', todoController.deleteTaskById);
 router.get('/lists/summary', todoController.getTodoDetails);
 
 export default router;
-

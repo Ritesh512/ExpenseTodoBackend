@@ -1,12 +1,24 @@
 import TodoList from '../models/TodoList.js';
 import mongoose from 'mongoose';
+import { getDueReminder, getTodoPeriodKey, isTodoTaskComplete } from '../utils/todoSchedule.js';
 
 
 
 export const addTaskToList = async (req, res) => {
   const { listId } = req.params; // Extract the list ID from the request parameters
-  const { taskName, duration, reminder } = req.body; // Extract task details from the request body
+  const { taskName, duration, reminder } = req.body;
   const userId = req.userId; // Get the user ID from the middleware
+
+  if (typeof taskName !== 'string' || !taskName.trim()) {
+    return res.status(400).json({ message: 'Task name is required' });
+  }
+
+  if (duration && Number.isNaN(new Date(duration).getTime())) {
+    return res.status(400).json({ message: 'Task date is invalid' });
+  }
+  if (reminder && Number.isNaN(new Date(reminder).getTime())) {
+    return res.status(400).json({ message: 'Task reminder is invalid' });
+  }
 
   try {
     // Find the todo list by its unique ID and user ID
@@ -17,10 +29,11 @@ export const addTaskToList = async (req, res) => {
 
     // Create a new task
     const newTask = {
-      taskName,
-      duration: duration, // Add duration to the current time
-      reminder: reminder || null, // Optional reminder, can be null
-      completed: false // Default to not completed
+      taskName: taskName.trim(),
+      duration: duration || null,
+      reminder: reminder || null,
+      completed: false,
+      completionPeriod: null
     };
 
     // Add the new task to the tasks array in the list
@@ -44,27 +57,56 @@ export const addTaskToList = async (req, res) => {
 
 
 export const addNewList = async (req, res) => {
-  const { listName } = req.body; // Extract the list name from the request body
+  const {
+    listName,
+    frequency = 'daily',
+    timeZone = 'UTC',
+    reminderEnabled = false,
+    reminderTime = '09:00'
+  } = req.body;
   const userId = req.userId; // Get the user ID from the middleware
 
-  if (!listName) {
+  if (typeof listName !== 'string' || !listName.trim()) {
     return res.status(400).json({ message: 'List name is required' });
   }
 
+  if (!['daily', 'weekly', 'monthly', 'yearly', 'once'].includes(frequency)) {
+    return res.status(400).json({ message: 'Invalid list frequency' });
+  }
+
+  if (typeof reminderEnabled !== 'boolean') {
+    return res.status(400).json({ message: 'Reminder setting must be a boolean' });
+  }
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderTime)) {
+    return res.status(400).json({ message: 'Reminder time must use HH:mm format' });
+  }
+
   try {
-    const existingList = await TodoList.findOne({ userId, listName });
+    new Intl.DateTimeFormat('en-US', { timeZone }).format();
+  } catch {
+    return res.status(400).json({ message: 'Invalid time zone' });
+  }
+
+  try {
+    const normalizedName = listName.trim();
+    const existingList = await TodoList.findOne({ userId, listName: normalizedName });
 
     if (existingList) {
       return res.status(409).json({
-        message: 'Todo list already exists for this user with the name: ' + listName
+        message: 'Todo list already exists for this user with the name: ' + normalizedName
       });
     }
 
     // Create a new todo list
     const newList = new TodoList({
       userId,
-      listName,
-      tasks: [] // Initialize with an empty tasks array
+      listName: normalizedName,
+      frequency,
+      timeZone,
+      reminderEnabled,
+      reminderTime,
+      tasks: []
     });
 
     // Save the new list to the database
@@ -81,7 +123,7 @@ export const addNewList = async (req, res) => {
 
     if (error.code === 11000) { // Duplicate key error code
       return res.status(409).json({
-        message: 'Todo list already exists for this user with the name: ' + listName
+        message: 'Todo list already exists for this user with the name: ' + listName.trim()
       });
     }
 
@@ -98,13 +140,13 @@ export const getAllLists = async (req, res) => {
     // Find all todo lists for the user
     const todoLists = await TodoList.find({ userId });
 
-    if (!todoLists || todoLists.length === 0) {
-      return res.status(404).json({ message: 'No todo lists found for the user' });
-    }
-
     let responseList = todoLists.map(todoList => ({
       listName: todoList.listName,
-      _id: todoList._id
+      _id: todoList._id,
+      frequency: todoList.frequency || 'once',
+      reminderEnabled: todoList.reminderEnabled,
+      reminderTime: todoList.reminderTime,
+      timeZone: todoList.timeZone
     }));
 
 
@@ -199,7 +241,12 @@ export const getAllTasksFromList = async (req, res) => {
 
     res.status(200).json({
       message: 'Tasks retrieved successfully',
-      tasks: todoList.tasks
+      tasks: todoList.tasks.map(task => ({
+        ...task.toObject(),
+        completed: isTodoTaskComplete(task, todoList)
+      })),
+      frequency: todoList.frequency || 'once',
+      timeZone: todoList.timeZone || 'UTC'
     });
   } catch (error) {
     console.error('Error retrieving tasks:', error);
@@ -209,10 +256,9 @@ export const getAllTasksFromList = async (req, res) => {
 
 export const getTaskById = async (req, res) => {
   const { listId, taskId } = req.params;
-  console.log(listId, taskId);
 
   try {
-    const todoList = await TodoList.findById(listId);
+    const todoList = await TodoList.findOne({ _id: listId, userId: req.userId });
     if (!todoList) {
       return res.status(404).json({ message: 'Todo list not found' });
     }
@@ -222,7 +268,12 @@ export const getTaskById = async (req, res) => {
       return res.status(404).json({ message: 'Task not found in the todo list' });
     }
 
-    res.status(200).json({ task });
+    res.status(200).json({
+      task: {
+        ...task.toObject(),
+        completed: isTodoTaskComplete(task, todoList)
+      }
+    });
   } catch (error) {
     console.error('Error fetching task:', error);
     res.status(500).json({ message: 'Server error' });
@@ -235,7 +286,7 @@ export const updateTaskById = async (req, res) => {
   const { taskName, completed } = req.body;
 
   try {
-    const todoList = await TodoList.findById(listId);
+    const todoList = await TodoList.findOne({ _id: listId, userId: req.userId });
     if (!todoList) {
       return res.status(404).json({ message: 'Todo list not found' });
     }
@@ -246,8 +297,21 @@ export const updateTaskById = async (req, res) => {
     }
 
     // Update the task fields
-    if (taskName !== undefined) task.taskName = taskName;
-    if (completed !== undefined) task.completed = completed;
+    if (taskName !== undefined) {
+      if (typeof taskName !== 'string' || !taskName.trim()) {
+        return res.status(400).json({ message: 'Task name is required' });
+      }
+      task.taskName = taskName.trim();
+    }
+    if (completed !== undefined) {
+      if (typeof completed !== 'boolean') {
+        return res.status(400).json({ message: 'Completed must be a boolean' });
+      }
+      task.completed = completed;
+      task.completionPeriod = completed && (todoList.frequency || 'once') !== 'once'
+        ? getTodoPeriodKey(todoList.frequency, new Date(), todoList.timeZone || 'UTC')
+        : null;
+    }
 
     // Save the updated list
     await todoList.save();
@@ -267,7 +331,7 @@ export const deleteTaskById = async (req, res) => {
   const { listId, taskId } = req.params;
 
   try {
-    const todoList = await TodoList.findById(listId);
+    const todoList = await TodoList.findOne({ _id: listId, userId: req.userId });
     if (!todoList) {
       return res.status(404).json({ message: 'Todo list not found' });
     }
@@ -293,15 +357,22 @@ export const deleteTaskById = async (req, res) => {
 export const getTodoDetails = async (req, res) => {
   try {
     const userId = req.userId;
-    const todos = await TodoList.find({ userId }).select('tasks');
+    const todos = await TodoList.find({ userId });
+    const now = new Date();
 
     const pendingTasks = todos
-      .flatMap(list => list.tasks)
+      .flatMap(list => list.tasks.map(task => ({
+        ...task.toObject(),
+        completed: isTodoTaskComplete(task, list, now)
+      })))
       .filter(task => !task.completed)
       .slice(0, 5);
 
     const doneTasks = todos
-      .flatMap(list => list.tasks)
+      .flatMap(list => list.tasks.map(task => ({
+        ...task.toObject(),
+        completed: isTodoTaskComplete(task, list, now)
+      })))
       .filter(task => task.completed)
       .slice(0, 5);
 
@@ -309,5 +380,48 @@ export const getTodoDetails = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const claimDueReminders = async (req, res) => {
+  try {
+    const lists = await TodoList.find({ userId: req.userId, reminderEnabled: true });
+    const now = new Date();
+    const reminders = [];
+
+    for (const list of lists) {
+      const dueReminder = getDueReminder(list, now);
+      if (!dueReminder) continue;
+
+      const pendingCount = list.tasks.filter(
+        task => !isTodoTaskComplete(task, list, now)
+      ).length;
+      if (pendingCount === 0) continue;
+
+      const claimed = await TodoList.findOneAndUpdate(
+        {
+          _id: list._id,
+          userId: req.userId,
+          reminderEnabled: true,
+          lastReminderKey: { $ne: dueReminder.reminderKey }
+        },
+        { $set: { lastReminderKey: dueReminder.reminderKey } },
+        { new: false }
+      );
+
+      if (claimed) {
+        reminders.push({
+          listId: list._id,
+          listName: list.listName,
+          frequency: list.frequency || 'once',
+          pendingCount
+        });
+      }
+    }
+
+    res.status(200).json({ reminders });
+  } catch (error) {
+    console.error('Error claiming todo reminders:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
