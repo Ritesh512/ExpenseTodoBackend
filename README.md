@@ -1,7 +1,7 @@
 # Daily To-Do and Expense Tracker App  
 
 ## Description  
-This app is designed to help users organize their daily tasks and expenses efficiently. With separate functionalities for managing to-dos, tracking expenses, and a dashboard to visualize data, it serves as an all-in-one solution for personal productivity and financial management.
+This app is designed to help users organize their Daily Tasks and expenses efficiently. With separate functionalities for managing to-dos, tracking expenses, and a dashboard to visualize data, it serves as an all-in-one solution for personal productivity and financial management.
 
 ---
 
@@ -13,8 +13,10 @@ Access the app here: [Expense and To-Do Tracker](https://expense-todo-five.verce
 ## Features  
 
 ### 1. **To-Do List Management**  
-- Create multiple lists for different categories (e.g., *Food*, *Work*, *Personal*).  
-- Add, edit, and delete individual tasks.  
+- Create named lists with daily, weekly, monthly, yearly, or regular (one-time) cadence.
+- Add and delete tasks, mark completion, and reset recurring completion by period.
+- Optional local-time reminders while the app is open: daily, Sundays for weekly
+  and monthly lists, and the first day of each month for yearly lists.
 - Example:  
   - List: *Groceries*  
   - Task: *Buy 1kg apples*  
@@ -77,11 +79,21 @@ Once the server is running, open your browser and navigate to:
 http://localhost:3000
 ```
 
+### Rebuild the Frontend
+The backend serves the production frontend from `backendTodo/dist`. From the
+repository root, build the frontend before starting or deploying the backend:
+
+```bash
+cd Frontend
+npm run build
+cd ../backendTodo
+npm start
+```
+
 ---
 
 
 ### Future Enhancements
-- Reminder Notifications: Add reminders for overdue to-dos or monthly budget thresholds.
 - Export Data: Allow exporting expenses as CSV or Excel files.
 - Mobile App: Develop a mobile version for easier access.
 

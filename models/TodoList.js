@@ -7,8 +7,8 @@ const taskSchema = new mongoose.Schema({
     trim: true
   },
   duration: {
-    type: Date, // Duration in minutes (for example)
-    required: true
+    type: Date,
+    default: null
   },
   reminder: {
     type: Date, // Optional
@@ -17,6 +17,10 @@ const taskSchema = new mongoose.Schema({
   completed: {
     type: Boolean,
     default: false
+  },
+  completionPeriod: {
+    type: String,
+    default: null
   }
 },{ timestamps: true });
 
@@ -31,6 +35,27 @@ const todoListSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  frequency: {
+    type: String,
+    enum: ['daily', 'weekly', 'monthly', 'yearly', 'once'],
+    default: 'once'
+  },
+  timeZone: {
+    type: String,
+    default: 'UTC'
+  },
+  reminderEnabled: {
+    type: Boolean,
+    default: false
+  },
+  reminderTime: {
+    type: String,
+    default: '09:00'
+  },
+  lastReminderKey: {
+    type: String,
+    default: null
   },
   tasks: [taskSchema], // Array of tasks
 }, {

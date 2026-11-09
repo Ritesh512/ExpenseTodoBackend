@@ -2,6 +2,7 @@
 import User from '../models/User.js';  // Import the User model
 import TodoList from '../models/TodoList.js';
 import Expense from '../models/Expense.js';
+import { isTodoTaskComplete } from '../utils/todoSchedule.js';
 
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -137,9 +138,10 @@ export const getUserDashboard = async (req, res) => {
 
     // Calculate todo stats
     let todoPendingCount = 0, todoDoneCount = 0;
+    const now = new Date();
     todos.forEach(list => {
       list.tasks.forEach(task => {
-        if (task.completed) todoDoneCount++;
+        if (isTodoTaskComplete(task, list, now)) todoDoneCount++;
         else todoPendingCount++;
       });
     });
@@ -211,7 +213,6 @@ export const changePassword = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 
 
